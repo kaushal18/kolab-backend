@@ -12,22 +12,30 @@ const io = socketio(server, {
   },
 });
 
+// middleware to validate token
+io.use((socket, next) => {
+  const token = socket.handshake.query.token;
+  if (token === "") return next(new Error("invalid token"));
+  else return next();
+});
+
 // when user connects
 io.on("connection", (socket) => {
+  const room = socket.handshake.query.token;
+  socket.join(room);
+
   // when new client joins emit the existing content from db
-  getMessage().then((msg) => {
+  getMessage(room).then((msg) => {
     io.to(socket.id).emit("message", msg);
   });
 
-  console.log(`user ${socket.id} joined`);
+  console.log(`user ${socket.id} joined, token ${room}`);
 
   // listen for changes in content from client
   socket.on("message", (msg) => {
-    saveMessage(msg);
-    // console.log(`${socket.id} says ${msg}`);
-
+    saveMessage(room, msg);
     // broadcast changes to all other clients
-    socket.broadcast.emit("message", msg);
+    socket.broadcast.to(room).emit("message", msg);
   });
 
   socket.on("disconnect", () => {

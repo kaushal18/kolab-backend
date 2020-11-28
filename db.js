@@ -1,18 +1,18 @@
-let data = "";
+let data = {};
 
-function saveMessage(msg) {
+function saveMessage(room, msg) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      data = msg;
+      data[room] = msg;
       resolve();
     }, 1000);
   });
 }
 
-function getMessage() {
+function getMessage(room) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      resolve(data);
+      resolve(data[room]);
     }, 1000);
   });
 }
