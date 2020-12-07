@@ -2,26 +2,29 @@ const pool = require("./config");
 
 async function saveMessage(token, msg) {
   // check if token entry is already present in db
-  const prevData = await getMessage(token);
-  // update
-  if (prevData) {
-    await pool.query(
-      `UPDATE pastebin
-      SET content=$2
-      WHERE token = $1`,
-      [token, msg]
-    );
-  }
-  // insert new db entry
-  else {
-    await pool.query(
-      `INSERT INTO pastebin (token, content) 
-      VALUES ($1, $2)`,
-      [token, msg]
-    );
-  }
+  const isPresent = await pool.query(
+    `SELECT EXISTS(SELECT 1 FROM pastebin where token = $1)`,
+    [token]
+  );
 
-  // console.log(data);
+  try {
+    if (isPresent.rows[0].exists) {
+      await pool.query(
+        `UPDATE pastebin
+        SET content = $2
+        WHERE token = $1`,
+        [token, msg]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO pastebin (token, content) 
+        VALUES ($1, $2)`,
+        [token, msg]
+      );
+    }
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 async function getMessage(token) {
@@ -34,7 +37,7 @@ async function getMessage(token) {
     }
     return "";
   } catch (e) {
-    console.log(e.message);
+    console.log(e);
   }
 }
 
