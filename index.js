@@ -1,9 +1,15 @@
 const http = require("http");
 const express = require("express");
+const cors = require("cors");
+const migrate = require("./routes/migrate");
 const socketio = require("socket.io");
 const { getMessage, saveMessage } = require("./db/dbOperations");
 
 const app = express();
+app.use(cors({ origin: "http://localhost:3000" }));
+app.use(express.json());
+app.use("/api/migrate", migrate);
+
 const server = http.createServer(app);
 const io = socketio(server, {
   cors: {
@@ -25,17 +31,20 @@ io.on("connection", (socket) => {
   socket.join(room);
 
   // when new client joins emit the existing content from db
-  getMessage(room).then((msg) => {
-    io.to(socket.id).emit("message", msg);
+  getMessage(room).then((response) => {
+    if (response instanceof Error) return console.log(response);
+    io.to(socket.id).emit("message", response);
   });
 
   console.log(`user ${socket.id} joined, token ${room}`);
 
   // listen for changes in content from client
   socket.on("message", (msg) => {
-    saveMessage(room, msg);
     // broadcast changes to all other clients
     socket.broadcast.to(room).emit("message", msg);
+    saveMessage(room, msg).then((response) => {
+      if (response instanceof Error) return console.log(response);
+    });
   });
 
   socket.on("disconnect", () => {
