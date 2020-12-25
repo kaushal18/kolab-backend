@@ -17,7 +17,6 @@ router.post("/", async (req, res) => {
       `SELECT content FROM pastebin WHERE token = $1`, 
       [oldToken]
     );
-    // console.log(result[0].content);
     await pool.query(
       `INSERT INTO pastebin (token, content)
       VALUES ($1, $2)`,
