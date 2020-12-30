@@ -16,9 +16,11 @@ async function saveMessage(token, msg) {
   // check if token entry is already present in db
   try {
     const alreadyPresent = await isTokenPresent(token);
+    console.log(`token:${token} - in:db - isPresent: ${alreadyPresent}`);
     if (alreadyPresent instanceof Error) return alreadyPresent;
 
     if (alreadyPresent) {
+      console.log(`token:${token} - in:db - update - content: ${msg}`);
       await pool.query(
         `UPDATE pastebin
         SET content = $2
@@ -26,6 +28,7 @@ async function saveMessage(token, msg) {
         [token, msg]
       );
     } else {
+      console.log(`token:${token} - in:db - insert - content: ${msg}`);
       await pool.query(
         `INSERT INTO pastebin (token, content) 
         VALUES ($1, $2)`,

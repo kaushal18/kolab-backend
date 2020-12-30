@@ -21,8 +21,10 @@ const io = socketio(server, {
 // middleware to validate token
 io.use((socket, next) => {
   const token = socket.handshake.query.token;
-  if (token === "") return next(new Error("invalid token"));
-  else return next();
+  if (token === "") {
+    console.log(`token:${token} - in:socket - invalid token`);
+    return next(new Error("invalid token"));
+  } else return next();
 });
 
 // when user connects
@@ -30,25 +32,31 @@ io.on("connection", (socket) => {
   const room = socket.handshake.query.token;
   socket.join(room);
 
+  console.log(`token:${room} - in:socket - joined`);
   // when new client joins emit the existing content from db
   getMessage(room).then((response) => {
-    if (response instanceof Error) return console.log(response);
+    if (response instanceof Error)
+      return console.log(
+        `token:${room} - in:socket - error:cannot get content from db - response: ${response}`
+      );
     io.to(socket.id).emit("message", response);
   });
 
-  console.log(`user ${socket.id} joined, token ${room}`);
-
   // listen for changes in content from client
   socket.on("message", (msg) => {
+    console.log(`token:${room} - in:socket - received: ${msg}`);
     // broadcast changes to all other clients
     socket.broadcast.to(room).emit("message", msg);
     saveMessage(room, msg).then((response) => {
-      if (response instanceof Error) return console.log(response);
+      if (response instanceof Error)
+        return console.log(
+          `token:${room} - in:socket - error:cannot save - response: ${response}`
+        );
     });
   });
 
   socket.on("disconnect", () => {
-    console.log(`user ${socket.id} left`);
+    console.log(`token:${room} - in:scoket - left`);
   });
 });
 

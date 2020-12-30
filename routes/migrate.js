@@ -6,6 +6,7 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const { oldToken, newToken } = req.body;
+    console.log(`migrate ${oldToken} to ${newToken}`);
     const oldTokenPresent = await isTokenPresent(oldToken);
     if (!oldTokenPresent) return res.status(404).send("token not found");
 
@@ -24,7 +25,9 @@ router.post("/", async (req, res) => {
     );
     await pool.query(`DELETE FROM pastebin WHERE token = $1`, [oldToken]);
 
-    res.send(`succesfully migrated from ${oldToken} to ${newToken}`);
+    res
+      .status(200)
+      .send(`succesfully migrated from ${oldToken} to ${newToken}`);
   } catch (e) {
     console.log(e);
   }
