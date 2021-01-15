@@ -2,18 +2,19 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const migrate = require("./routes/migrate");
+const password = require("./routes/password");
 const socketio = require("socket.io");
 const { getMessage, saveMessage } = require("./db/dbOperations");
 
 const app = express();
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors());
 app.use(express.json());
 app.use("/api/migrate", migrate);
+app.use("/api/auth", password);
 
 const server = http.createServer(app);
 const io = socketio(server, {
   cors: {
-    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });

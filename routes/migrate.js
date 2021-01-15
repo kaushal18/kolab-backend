@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
       .status(200)
       .send(`succesfully migrated from ${oldToken} to ${newToken}`);
   } catch (e) {
-    console.log(e);
+    console.log(`error in db operation in migrate ${e}`);
   }
 });
 
