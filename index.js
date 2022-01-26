@@ -48,7 +48,7 @@ io.on("connection", (socket) => {
     console.log(`token:${room} - in:socket - received: ${msg}`);
     // broadcast changes to all other clients
     socket.broadcast.to(room).emit("message", msg);
-    saveMessage(room, msg).then((response) => {
+    saveOrUpdate(room, msg).then((response) => {
       if (response instanceof Error)
         return console.log(
           `token:${room} - in:socket - error:cannot save - response: ${response}`
