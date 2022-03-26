@@ -6,14 +6,14 @@ router.get("/", async (req, res) => {
   try {
     const { token } = req.body;
     const isPasswordProtected = await pool.query(
-      `SELECT password FROM pastebin where token = $1`,
+      `SELECT is_password_protected FROM token_document_mapping where url_token = $1`,
       [token]
     );
     if (isPasswordProtected.rows[0].exists)
-      res.status(200).send("password found");
-    else res.status(404).send("password not found");
+      res.status(200).send("password protected");
+    else res.status(404).send("not password protected");
   } catch (e) {
-    console.log(`error in db operation in password ${e}`);
+    console.log(`error in db operation while password protection check ${e}`);
   }
 });
 
