@@ -5,6 +5,11 @@ const migrate = require("./routes/migrate");
 const passwordCheck = require("./routes/passwordCheck");
 const socketio = require("socket.io");
 const { getMessage, saveMessage } = require("./db/dbOperations");
+const { SOCKET_CONNECT, 
+        SOCKET_DISCONNECT, 
+        TRANSFER_DOCUMENT, 
+        ERROR 
+      } = require("./constants.js");
 
 const app = express();
 app.use(cors());
@@ -29,7 +34,7 @@ io.use((socket, next) => {
 });
 
 // when user connects
-io.on("connection", (socket) => {
+io.on(SOCKET_CONNECT, (socket) => {
   const room = socket.handshake.query.token;
   socket.join(room);
 
@@ -39,20 +44,20 @@ io.on("connection", (socket) => {
   // TODO - do not send entire response over network
   getDataForToken(room).then((response) => {
     if(response instanceof Error)
-      io.to(socket.id).emit("error", response);
+      io.to(socket.id).emit(ERROR, response);
     else
-      io.to(socket.id).emit("message", response);
+      io.to(socket.id).emit(TRANSFER_DOCUMENT, response);
   });
 
   // listen for changes in content from client
-  socket.on("message", (msg) => {
+  socket.on(TRANSFER_DOCUMENT, (msg) => {
     console.log(`token:${room} - in:socket - received: ${msg}`);
     // broadcast changes to all other clients
-    socket.broadcast.to(room).emit("message", msg);
+    socket.broadcast.to(room).emit(TRANSFER_DOCUMENT, msg);
     saveOrUpdate(room, msg);
   });
 
-  socket.on("disconnect", () => {
+  socket.on(SOCKET_DISCONNECT, () => {
     console.log(`token:${room} - in:scoket - left`);
   });
 });
