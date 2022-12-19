@@ -4,7 +4,7 @@ const cors = require("cors");
 const migrate = require("./routes/migrate");
 const passwordCheck = require("./routes/passwordCheck");
 const socketio = require("socket.io");
-const { getMessage, saveMessage } = require("./db/dbOperations");
+const {  saveOrUpdate, getDataForToken } = require("./db/dbOperations");
 const { SOCKET_CONNECT, 
         SOCKET_DISCONNECT, 
         TRANSFER_DOCUMENT, 
@@ -43,6 +43,7 @@ io.on(SOCKET_CONNECT, (socket) => {
   
   // TODO - do not send entire response over network
   getDataForToken(room).then((response) => {
+    // console.log(response);
     if(response instanceof Error)
       io.to(socket.id).emit(ERROR, response);
     else
@@ -62,5 +63,5 @@ io.on(SOCKET_CONNECT, (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => console.log(`PasteBin Backend server started and listening on port - ${PORT}`));
