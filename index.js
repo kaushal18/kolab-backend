@@ -64,4 +64,4 @@ io.on(SOCKET_CONNECT, (socket) => {
 });
 
 const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => console.log(`PasteBin Backend server started and listening on port - ${PORT}`));
+server.listen(PORT, () => console.log(`Kolab backend server started and listening on port - ${PORT}`));

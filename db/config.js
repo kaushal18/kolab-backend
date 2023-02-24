@@ -5,7 +5,7 @@ const pool = new Pool({
   password: "",
   host: "localhost",
   port: 5432,
-  database: "pastebindb",
+  database: "kolab",
 });
 
 module.exports = pool;
