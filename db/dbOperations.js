@@ -1,51 +1,26 @@
 const pool = require("./config");
 
-async function isTokenPresent(token) {
+async function saveOrUpdate(token, document) {
   try {
-    const isPresent = await pool.query(
-      `SELECT EXISTS(SELECT 1 FROM pastebin where token = $1)`,
-      [token]
-    );
-    return isPresent.rows[0].exists;
-  } catch (e) {
+    await pool.query(`INSERT INTO token_document_mapping (url_token, document) VALUES ($1, $2) 
+                      ON CONFLICT (url_token) DO UPDATE
+                      SET document = $2 WHERE token_document_mapping.url_token = $1`,
+                      [token, document]);
+  } catch(e) {
+    console.error("database error while inserting or updating record", e);
     return e;
   }
 }
 
-async function saveMessage(token, msg) {
-  // check if token entry is already present in db
+async function getDataForToken(token) {
   try {
-    const alreadyPresent = await isTokenPresent(token);
-    if (alreadyPresent instanceof Error) return alreadyPresent;
+    let data = await pool.query(
+                      `SELECT * FROM token_document_mapping WHERE url_token = $1`, 
+                      [token]
+                    );
 
-    if (alreadyPresent) {
-      console.log(`token:${token} - in:db - update - content: ${msg}`);
-      await pool.query(
-        `UPDATE pastebin
-        SET content = $2
-        WHERE token = $1`,
-        [token, msg]
-      );
-    } else {
-      console.log(`token:${token} - in:db - insert - content: ${msg}`);
-      await pool.query(
-        `INSERT INTO pastebin (token, content) 
-        VALUES ($1, $2)`,
-        [token, msg]
-      );
-    }
-  } catch (e) {
-    return e;
-  }
-}
-
-async function getMessage(token) {
-  try {
-    let data = await pool.query(`SELECT * FROM pastebin WHERE token = $1`, [
-      token,
-    ]);
     if (data.rows[0]) {
-      return data.rows[0].content;
+      return data.rows[0].document;
     }
     return "";
   } catch (e) {
@@ -54,7 +29,6 @@ async function getMessage(token) {
 }
 
 module.exports = {
-  isTokenPresent,
-  saveMessage,
-  getMessage,
+  saveOrUpdate,
+  getDataForToken
 };

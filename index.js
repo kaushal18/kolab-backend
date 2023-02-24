@@ -2,15 +2,20 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const migrate = require("./routes/migrate");
-const password = require("./routes/password");
+const passwordCheck = require("./routes/passwordCheck");
 const socketio = require("socket.io");
-const { getMessage, saveMessage } = require("./db/dbOperations");
+const {  saveOrUpdate, getDataForToken } = require("./db/dbOperations");
+const { SOCKET_CONNECT, 
+        SOCKET_DISCONNECT, 
+        TRANSFER_DOCUMENT, 
+        ERROR 
+      } = require("./constants.js");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/migrate", migrate);
-app.use("/api/auth", password);
+app.use("/api/auth", passwordCheck);
 
 const server = http.createServer(app);
 const io = socketio(server, {
@@ -22,44 +27,41 @@ const io = socketio(server, {
 // middleware to validate token
 io.use((socket, next) => {
   const token = socket.handshake.query.token;
-  if (token === "") {
-    console.log(`token:${token} - in:socket - invalid token`);
+  if (token.trim() === "") {
+    console.error(`token:${token} - in:socket - invalid token`);
     return next(new Error("invalid token"));
   } else return next();
 });
 
 // when user connects
-io.on("connection", (socket) => {
+io.on(SOCKET_CONNECT, (socket) => {
   const room = socket.handshake.query.token;
   socket.join(room);
 
   console.log(`token:${room} - in:socket - joined`);
   // when new client joins emit the existing content from db
-  getMessage(room).then((response) => {
-    if (response instanceof Error)
-      return console.log(
-        `token:${room} - in:socket - error:cannot get content from db - response: ${response}`
-      );
-    io.to(socket.id).emit("message", response);
+  
+  // TODO - do not send entire response over network
+  getDataForToken(room).then((response) => {
+    // console.log(response);
+    if(response instanceof Error)
+      io.to(socket.id).emit(ERROR, response);
+    else
+      io.to(socket.id).emit(TRANSFER_DOCUMENT, response);
   });
 
   // listen for changes in content from client
-  socket.on("message", (msg) => {
+  socket.on(TRANSFER_DOCUMENT, (msg) => {
     console.log(`token:${room} - in:socket - received: ${msg}`);
     // broadcast changes to all other clients
-    socket.broadcast.to(room).emit("message", msg);
-    saveMessage(room, msg).then((response) => {
-      if (response instanceof Error)
-        return console.log(
-          `token:${room} - in:socket - error:cannot save - response: ${response}`
-        );
-    });
+    socket.broadcast.to(room).emit(TRANSFER_DOCUMENT, msg);
+    saveOrUpdate(room, msg);
   });
 
-  socket.on("disconnect", () => {
+  socket.on(SOCKET_DISCONNECT, () => {
     console.log(`token:${room} - in:scoket - left`);
   });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`listening on port ${PORT}`));
+const PORT = process.env.PORT || 5001;
+server.listen(PORT, () => console.log(`Kolab backend server started and listening on port - ${PORT}`));
