@@ -6,9 +6,9 @@ const router = express.Router();
 /**
  *  DB transaction to migrate document from old token to new one
  */
-router.post("/", (req, res) => {
+router.post("/", (req, finalRes) => {
   const { oldToken, newToken } = req.body;
-  console.log(`migrating ${oldToken} to ${newToken}`);
+  let statusCode;
   pool
     .query("begin")
     .then(res => {
@@ -18,9 +18,11 @@ router.post("/", (req, res) => {
       );
     })
     .then(res => {
-      if(!res.rows[0].exists) {
-        throw new Error("token already present");
+      if(res.rows[0].exists) {
+        statusCode = "409";
+        throw new Error("URL already taken");
       }
+      
       return pool.query(
         `SELECT document FROM token_document_mapping WHERE url_token = $1`, 
         [oldToken]
@@ -44,16 +46,20 @@ router.post("/", (req, res) => {
     })
     .then(res => {
       console.log("transaction completed");
-      res
+      return finalRes
         .status(200)
-        .send(`succesfully migrated from ${oldToken} to ${newToken}`);
+        .json({response: `succesfully migrated from ${oldToken} to ${newToken}`});
     })
     .catch(err => {
-      console.error("error while querying:", err);
-      return pool.query("rollback");
+      console.error(err);
+      pool.query("rollback");
+      if(statusCode === "409")  
+        return finalRes.status(409).json({error: "URL is already taken"});
+      else if(statusCode === "500") 
+        return finalRes.status(500).json({error: "Something went wrong, please try again later"});
     })
     .catch(err => {
-      console.error("error while rolling back transaction:", err);
+      console.error(err);
     });
 });
 
