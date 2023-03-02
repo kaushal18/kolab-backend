@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const migrate = require("./routes/migrate");
 const passwordCheck = require("./routes/passwordCheck");
+const register = require("./routes/register");
+const login = require("./routes/login");
 const socketio = require("socket.io");
 const {  saveOrUpdate, getDataForToken } = require("./db/dbOperations");
 const { SOCKET_CONNECT, 
@@ -15,7 +17,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/migrate", migrate);
-app.use("/api/auth", passwordCheck);
+app.use("/api/verify", passwordCheck);
+app.use("/api/register", register);
+app.use("/api/auth", login);
 
 const server = http.createServer(app);
 const io = socketio(server, {
@@ -40,10 +44,7 @@ io.on(SOCKET_CONNECT, (socket) => {
 
   console.log(`token:${room} - in:socket - joined`);
   // when new client joins emit the existing content from db
-  
-  // TODO - do not send entire response over network
   getDataForToken(room).then((response) => {
-    // console.log(response);
     if(response instanceof Error)
       io.to(socket.id).emit(ERROR, response);
     else

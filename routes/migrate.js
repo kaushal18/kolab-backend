@@ -46,17 +46,17 @@ router.post("/", (req, finalRes) => {
     })
     .then(res => {
       console.log("transaction completed");
-      return finalRes
+      finalRes
         .status(200)
-        .json({response: `succesfully migrated from ${oldToken} to ${newToken}`});
+        .send(`succesfully migrated from ${oldToken} to ${newToken}`);
     })
     .catch(err => {
       console.error(err);
       pool.query("rollback");
       if(statusCode === "409")  
-        return finalRes.status(409).json({error: "URL is already taken"});
+        finalRes.status(409).send("URL is already taken");
       else if(statusCode === "500") 
-        return finalRes.status(500).json({error: "Something went wrong, please try again later"});
+        finalRes.status(500).send("Something went wrong, please try again later");
     })
     .catch(err => {
       console.error(err);
