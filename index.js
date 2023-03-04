@@ -5,7 +5,9 @@ const migrate = require("./routes/migrate");
 const passwordCheck = require("./routes/passwordCheck");
 const register = require("./routes/register");
 const login = require("./routes/login");
+const refreshToken = require("./routes/refreshToken");
 const socketio = require("socket.io");
+const cookieParser = require("cookie-parser");
 const {  saveOrUpdate, getDataForToken } = require("./db/dbOperations");
 const { SOCKET_CONNECT, 
         SOCKET_DISCONNECT, 
@@ -14,12 +16,18 @@ const { SOCKET_CONNECT,
       } = require("./constants.js");
 
 const app = express();
+
+// middlewares
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+// routes
 app.use("/api/migrate", migrate);
 app.use("/api/verify", passwordCheck);
 app.use("/api/register", register);
 app.use("/api/auth", login);
+app.use("/api/refresh", refreshToken);
 
 const server = http.createServer(app);
 const io = socketio(server, {

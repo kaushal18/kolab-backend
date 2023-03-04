@@ -1,10 +1,13 @@
 const express = require("express");
 const pool = require("../db/config");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const router = express.Router();
+require("dotenv").config();
 
 /* 
   This route checks if the "token" and "password" is valid
+  If the token and password are valid the function returns an access token with limited time expiry and an refresh token as httpOnly cookie
 */
 router.post("/", async (req, res) => {
   try {
@@ -32,8 +35,30 @@ router.post("/", async (req, res) => {
 
     const match = await bcrypt.compare(password, res2.rows[0].password);
     if(match) {
-      // TODO: create JWT
-      return res.status(200).send("Token Authenticated succesfully");
+      // create JWT
+      const accessToken = jwt.sign(
+        { "url_token": token },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: '30s' }
+      );
+
+      const refreshToken = jwt.sign(
+        { "url_token": token },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: '1d' }
+      );
+
+      // keep access token in memory
+      // store the refresh token in DB
+      await pool.query(
+        `UPDATE token_document_mapping 
+        SET refresh_token = $1
+        WHERE url_token = $2`,
+        [refreshToken, token]
+      );
+      
+      res.cookie('jwt', refreshToken, {httpOnly: true, maxAge: 24 * 60 * 60 * 1000});
+      return res.status(200).send({ accessToken });
     }
     else {
       return res.status(401).send("Incorrect Token or Password");
