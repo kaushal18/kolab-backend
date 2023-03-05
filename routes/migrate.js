@@ -24,15 +24,15 @@ router.post("/", (req, finalRes) => {
       }
       
       return pool.query(
-        `SELECT document FROM token_document_mapping WHERE url_token = $1`, 
+        `SELECT * FROM token_document_mapping WHERE url_token = $1`, 
         [oldToken]
       );
     })
     .then(res => {
       return pool.query(
-        `INSERT INTO token_document_mapping (url_token, document)
-        VALUES ($1, $2)`,
-        [newToken, res.rows[0].document]
+        `INSERT INTO token_document_mapping (url_token, document, is_password_protected, password, refresh_token)
+        VALUES ($1, $2, $3, $4, $5)`,
+        [newToken, res.rows[0].document, res.rows[0].is_password_protected, res.rows[0].password, res.rows[0].refresh_token]
       );
     })
     .then(res => {
@@ -46,17 +46,17 @@ router.post("/", (req, finalRes) => {
     })
     .then(res => {
       console.log("transaction completed");
-      return finalRes
+      finalRes
         .status(200)
-        .json({response: `succesfully migrated from ${oldToken} to ${newToken}`});
+        .send(`succesfully migrated from ${oldToken} to ${newToken}`);
     })
     .catch(err => {
       console.error(err);
       pool.query("rollback");
       if(statusCode === "409")  
-        return finalRes.status(409).json({error: "URL is already taken"});
+        finalRes.status(409).send("URL is already taken");
       else if(statusCode === "500") 
-        return finalRes.status(500).json({error: "Something went wrong, please try again later"});
+        finalRes.status(500).send("Something went wrong, please try again later");
     })
     .catch(err => {
       console.error(err);

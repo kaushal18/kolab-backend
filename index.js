@@ -3,7 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const migrate = require("./routes/migrate");
 const passwordCheck = require("./routes/passwordCheck");
+const register = require("./routes/register");
+const login = require("./routes/login");
+const refreshToken = require("./routes/refreshToken");
 const socketio = require("socket.io");
+const cookieParser = require("cookie-parser");
 const {  saveOrUpdate, getDataForToken } = require("./db/dbOperations");
 const { SOCKET_CONNECT, 
         SOCKET_DISCONNECT, 
@@ -12,10 +16,18 @@ const { SOCKET_CONNECT,
       } = require("./constants.js");
 
 const app = express();
+
+// middlewares
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+// routes
 app.use("/api/migrate", migrate);
-app.use("/api/auth", passwordCheck);
+app.use("/api/verify", passwordCheck);
+app.use("/api/register", register);
+app.use("/api/auth", login);
+app.use("/api/refresh", refreshToken);
 
 const server = http.createServer(app);
 const io = socketio(server, {
@@ -40,10 +52,7 @@ io.on(SOCKET_CONNECT, (socket) => {
 
   console.log(`token:${room} - in:socket - joined`);
   // when new client joins emit the existing content from db
-  
-  // TODO - do not send entire response over network
   getDataForToken(room).then((response) => {
-    // console.log(response);
     if(response instanceof Error)
       io.to(socket.id).emit(ERROR, response);
     else
