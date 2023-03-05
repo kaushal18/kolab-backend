@@ -9,7 +9,7 @@ require("dotenv").config();
   Request new access token when it expires 
   Refresh token is sent in cookies
 */
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const cookies = req.cookies;
     // if no refresh token found in cookie
@@ -43,8 +43,8 @@ router.get("/", (req, res) => {
         // generate new access token
         const accessToken = jwt.sign(
           { "url_token": decoded.url_token },
-          process.env.REFRESH_TOKEN_SECRET,
-          { expiresIn: '30s' }
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: '120s' }
         );
 
         return res.status(200).send({ accessToken });
