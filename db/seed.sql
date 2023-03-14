@@ -7,5 +7,8 @@ Local machine -
 */
 CREATE TABLE token_document_mapping(
    url_token TEXT PRIMARY KEY NOT NULL,
-   document TEXT
+   document TEXT,
+   is_password_protected BOOLEAN DEFAULT FALSE,
+   password TEXT,
+   refresh_token TEXT
 );
