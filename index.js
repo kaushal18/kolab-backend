@@ -11,7 +11,7 @@ const cookieParser = require("cookie-parser");
 const {  saveOrUpdate, getDataForToken } = require("./db/dbOperations");
 const { SOCKET_CONNECT, 
         SOCKET_DISCONNECT, 
-        TRANSFER_DOCUMENT, 
+        SYNC_DOCUMENT, 
         ERROR 
       } = require("./constants.js");
 
@@ -23,10 +23,15 @@ app.use(express.json());
 app.use(cookieParser());
 
 // routes
+// migrate from URL1 to URL2
 app.use("/api/migrate", migrate);
+// check if given URL is password protected
 app.use("/api/verify", passwordCheck);
+// assign password to the given URL and return access and refresh token
 app.use("/api/register", register);
+// log in the user using provided password 
 app.use("/api/auth", login);
+// generate a new access token by providing a valid refresh token
 app.use("/api/refresh", refreshToken);
 
 const server = http.createServer(app);
@@ -40,7 +45,7 @@ const io = socketio(server, {
 io.use((socket, next) => {
   const token = socket.handshake.query.token;
   if (token.trim() === "") {
-    console.error(`token:${token} - in:socket - invalid token`);
+    console.error(`token:${token} - invalid token`);
     return next(new Error("invalid token"));
   } else return next();
 });
@@ -50,25 +55,25 @@ io.on(SOCKET_CONNECT, (socket) => {
   const room = socket.handshake.query.token;
   socket.join(room);
 
-  console.log(`token:${room} - in:socket - joined`);
+  console.log(`token:${room} - joined`);
   // when new client joins emit the existing content from db
   getDataForToken(room).then((response) => {
     if(response instanceof Error)
       io.to(socket.id).emit(ERROR, response);
     else
-      io.to(socket.id).emit(TRANSFER_DOCUMENT, response);
+      io.to(socket.id).emit(SYNC_DOCUMENT, response);
   });
 
   // listen for changes in content from client
-  socket.on(TRANSFER_DOCUMENT, (msg) => {
-    console.log(`token:${room} - in:socket - received: ${msg}`);
+  socket.on(SYNC_DOCUMENT, (msg) => {
+    console.log(`token:${room} - received: ${msg}`);
     // broadcast changes to all other clients
-    socket.broadcast.to(room).emit(TRANSFER_DOCUMENT, msg);
+    socket.broadcast.to(room).emit(SYNC_DOCUMENT, msg);
     saveOrUpdate(room, msg);
   });
 
   socket.on(SOCKET_DISCONNECT, () => {
-    console.log(`token:${room} - in:scoket - left`);
+    console.log(`token:${room} - left`);
   });
 });
 

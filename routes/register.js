@@ -5,9 +5,8 @@ const bcrypt = require("bcrypt");
 const router = express.Router();
 
 /* 
-  Register url_token and password and log in the user by sending jwt
-  This route saves the "token" and "password" from the req body into the database
-  For every request the provided password is overwritten
+  Register the provided url token with the password
+  Register will only used when user decides to protect the document, this assumes the url token entry is already present in the db
 */
 router.post("/", async (req, res) => {
   try {

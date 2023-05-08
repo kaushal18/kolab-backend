@@ -7,7 +7,7 @@ require("dotenv").config();
 
 /*
   Request new access token when it expires 
-  Refresh token is sent in cookies
+  Refresh token is sent in cookies by the frontend
 */
 router.get("/", async (req, res) => {
   try {

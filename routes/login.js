@@ -6,7 +6,7 @@ const router = express.Router();
 require("dotenv").config();
 
 /* 
-  This route checks if the "token" and "password" is valid
+  This authenticates the user before accessing the document, assumes that url token entry is already present and is password protected
   If the token and password are valid the function returns an access token with limited time expiry and an refresh token as httpOnly cookie
 */
 router.post("/", async (req, res) => {
@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
 
     // if token dosen't exists throw error
     if(!existRes.rows[0].exists) {
-      return res.status(401).send("Unauthenticated token");
+      return res.status(401).send("URL token dosen't exist");
     }
 
     const res2 = await pool.query(
@@ -48,8 +48,6 @@ router.post("/", async (req, res) => {
         { expiresIn: '1d' }
       );
 
-      // keep access token in memory
-      // store the refresh token in DB
       await pool.query(
         `UPDATE token_document_mapping 
         SET refresh_token = $1
